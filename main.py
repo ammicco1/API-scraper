@@ -35,8 +35,8 @@ def __scan(proto, hostname, apis, verbose):
         for met in method: 
             response = requests.request(met, url = url)
 
-            if response.status_code != 404: 
-                if "<!DOCTYPE html>" in response.text:
+            if response.status_code > 199 and response.status_code < 300: 
+                if len(response.text) > 40:
                     text = hashlib.md5(response.text.encode()).hexdigest()
                 else:
                     text = response.text
@@ -48,9 +48,24 @@ def __scan(proto, hostname, apis, verbose):
 
                 r = [response.status_code, text]
                 out[url][met] = r
-            elif response.status_code == 404 and verbose is True:
-                out[url][met] = 404
-            
+            elif verbose is True:
+                if response.status_code != 404:
+                    if len(response.text) > 40:
+                        text = hashlib.md5(response.text.encode()).hexdigest()
+                    else:
+                        text = response.text
+
+                    print(f"[ \033[92m OK \033[0m ] - \033[1mUrl\033[0m: \033[96m{url}\033[0m, \
+\033[1mmethod\033[0m: \033[91m{met}\033[0m, \
+\033[1mstatus\033[0m: \033[93m{response.status_code}\033[0m, \
+\033[1mresponse\033[0m: {text}\n")
+                
+                    r = [response.status_code, text]
+                else:
+                    r = response.status_code
+
+                out[url][met] = response.status_code
+
         if not out[url]:
             out.pop(url)
             
