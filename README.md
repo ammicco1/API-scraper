@@ -31,11 +31,14 @@ So, by default it contains all the endpoints returned a 200 status code with:
 Some options can help to use the script: 
  - l (--list=) <filename>, specify a file contains a list of hostname.
  - p (--protocol=) <protocol>, specify the protocol to use, http or https, default is https.
- - o (--output=) <filename>, specify an output file (json).
+ - o (--output=) <filename>, specify an output file.
  - f (--file) <filename>, specify a file contains a list of API's endpoints.
  - m (--method) <method list>, specify a list of method to use (separate method with comma).
- - b (--body) <string>, specify a payload for post requests. With this options it send only POST.
+ - j (--json) <string>, specify a json payload for post requests. With this options it send only POST.
+ - d (--data) <string>, specify urlencoded data payload for post requests. With this options it send only POST.
+ - H (--header) <string>, specify a header in json form to include it in the request.
  - x (--exclude) <status code>, exclude a status code from output.
+ - F (--follow), follow redirect.
  - r (--response), print response text in output file instead of hash. In stdout print always the hash.
  - v (--verbose), print all http response code except for 404. Anyway 404 errors are printed in output file.
- - h (--help), display help.
+ - h (--help), display help. 

@@ -10,8 +10,11 @@ Options:
     -o (--output=) <filename>, specify an output file.
     -f (--file) <filename>, specify a file contains a list of API's endpoints.
     -m (--method) <method list>, specify a list of method to use (separate method with comma).
-    -b (--body) <string>, specify a payload for post requests. With this options it send only POST.
+    -j (--json) <string>, specify a json payload for post requests. With this options it send only POST.
+    -d (--data) <string>, specify urlencoded data payload for post requests. With this options it send only POST.
+    -H (--header) <string>, specify a header in json form to include it in the request.
     -x (--exclude) <status code>, exclude a status code from output.
+    -F (--follow), follow redirect.
     -r (--response), print response text in output file instead of hash. In stdout print always the hash.
     -v (--verbose), print all http response code except for 404. Anyway 404 errors are printed in output file.
     -h (--help), display this help. 
@@ -26,9 +29,13 @@ def __parse(filename):
 
     return data
 
-def __scan(proto, hostname, apis, verbose, exclude, printRes):
+def __scan(proto, hostname, apis, verbose, exclude, printRes, body, follow, header):
     print()
     out = {}
+    headers = {}
+
+    if header != "":
+        headers.update(header)
 
     for end in apis:
         url = f"{proto}://{hostname}/{end}"
@@ -36,7 +43,14 @@ def __scan(proto, hostname, apis, verbose, exclude, printRes):
         out[url] = {}
 
         for met in method: 
-            response = requests.request(met, url = url)
+            if body[0] == "json" and met == "POST":
+                headers["content-type"] = "application/json"
+                response = requests.request(met, url = url, json = body[1], allow_redirects = follow, headers = headers)
+            elif body[0] == "urlenc" and met == "POST":
+                headers["content-type"] = "application/x-www-form-urlencoded"
+                response = requests.request(met, url = url, data = body[1], allow_redirects = follow, headers = headers)
+            else:
+                response = requests.request(met, url = url, allow_redirects = follow, headers = headers)
 
             if ((response.status_code > 199 and response.status_code < 300) or (verbose is True and response.status_code != 404)) and (response.status_code != int(exclude)): 
                 if len(response.text) > 40:
@@ -56,7 +70,7 @@ def __scan(proto, hostname, apis, verbose, exclude, printRes):
                 
                 out[url][met] = r
             elif verbose is True and response.status_code == 404:
-                out[url][met] = response.status_code
+                out[url][met] =response.status_code
 
         if not out[url]:
             out.pop(url)
@@ -65,13 +79,14 @@ def __scan(proto, hostname, apis, verbose, exclude, printRes):
 
 method = ["GET", "POST"]
 proto = "https"
-hostFile = apiFile = outFile = body = ""
+hostFile = apiFile = outFile = header = ""
 output = []
-verbose = printRes = False
+body = ["", ""]
+verbose = printRes = follow = False
 exclude = 0
 
 try:
-    opts, args = getopt.getopt(sys.argv[1:], "l:p:o:f:m:b:x:rvh", ["list=", "protocol=", "output=", "file=", "method=", "body=","exclude=", "reponse", "verbose", "help"])
+    opts, args = getopt.getopt(sys.argv[1:], "l:p:o:f:m:j:d:H:x:Frvh", ["list=", "protocol=", "output=", "file=", "method=", "json=", "data=", "header=", "exclude=", "follow", "reponse", "verbose", "help"])
 except: 
     __usage()
     exit()
@@ -99,9 +114,18 @@ for opt, arg in opts:
                 method.append(m)
         else:
             method.append(mets)
-    if opt in ["-b", "--body"]:
+    if opt in ["-j", "--json"]:
         method.pop(0)
-        body = arg        
+        body[0] = "json"
+        body[1] = json.loads(arg)  
+    if opt in ["-d", "--data"]:
+        method.pop(0)
+        body[0] = "urlenc"
+        body[1] = arg 
+    if opt in ["-H", "--header"]:
+        header = json.loads(arg)
+    if opt in ["-F", "--follow"]:
+        follow = True   
     if opt in ["-x", "--exclude"]:  
         exclude = arg
     if opt in ["-r", "--reponse"]:
@@ -116,9 +140,9 @@ apis = __parse(apiFile)
 
 if hostFile != "":
     for hostname in open(hostFile, "r"):
-        output.append(__scan(proto, hostname.replace("\n", ""), apis, verbose, exclude, printRes))
+        output.append(__scan(proto, hostname.replace("\n", ""), apis, verbose, exclude, printRes, body, follow, header))
 else:
-    output.append(__scan(proto, hostname, apis, verbose, exclude, printRes))
+    output.append(__scan(proto, hostname, apis, verbose, exclude, printRes, body, follow, header))
 
 if outFile != "":
     of = open(outFile, "w")
