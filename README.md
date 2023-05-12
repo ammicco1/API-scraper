@@ -29,9 +29,9 @@ So, by default it contains all the endpoints returned a 200 status code with:
 
 ### Options
 Some options can help to use the script: 
- - l (--list=) <filename>, specify a file contains a list of hostname.
- - p (--protocol=) <protocol>, specify the protocol to use, http or https, default is https.
- - o (--output=) <filename>, specify an output file.
+ - l (--list) <filename>, specify a file contains a list of hostname.
+ - p (--protocol) <protocol>, specify the protocol to use, http or https, default is https.
+ - o (--output) <filename>, specify an output file.
  - f (--file) <filename>, specify a file contains a list of API's endpoints.
  - m (--method) <method list>, specify a list of method to use (separate method with comma).
  - j (--json) <string>, specify a json payload for post requests. With this options it send only POST.
