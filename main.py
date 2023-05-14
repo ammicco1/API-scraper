@@ -97,13 +97,13 @@ if len(args) > 0:
 for opt, arg in opts:
     if opt in ["-l", "--list"]:
         hostFile = arg
-    if opt in ["-p", "--protocol"]:
+    elif opt in ["-p", "--protocol"]:
         proto = arg
-    if opt in ["-o", "--output"]:
+    elif opt in ["-o", "--output"]:
         outFile = arg
-    if opt in ["-f", "--file"]:
+    elif opt in ["-f", "--file"]:
         apiFile = arg
-    if opt in ["-m", "--method"]:
+    elif opt in ["-m", "--method"]:
         mets = arg
         method.clear()
 
@@ -114,25 +114,25 @@ for opt, arg in opts:
                 method.append(m)
         else:
             method.append(mets)
-    if opt in ["-j", "--json"]:
+    elif opt in ["-j", "--json"]:
         method.pop(0)
         body[0] = "json"
         body[1] = json.loads(arg)  
-    if opt in ["-d", "--data"]:
+    elif opt in ["-d", "--data"]:
         method.pop(0)
         body[0] = "urlenc"
         body[1] = arg 
-    if opt in ["-H", "--header"]:
+    elif opt in ["-H", "--header"]:
         header = json.loads(arg)
-    if opt in ["-F", "--follow"]:
+    elif opt in ["-F", "--follow"]:
         follow = True   
-    if opt in ["-x", "--exclude"]:  
+    elif opt in ["-x", "--exclude"]:  
         exclude = arg
-    if opt in ["-r", "--reponse"]:
+    elif opt in ["-r", "--reponse"]:
         printRes = True
-    if opt in ["-v", "--verbose"]:
+    elif opt in ["-v", "--verbose"]:
         verbose = True
-    if opt in ["-h", "--help"]:
+    elif opt in ["-h", "--help"]:
         __usage()
         exit()
 
