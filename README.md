@@ -2,7 +2,7 @@
 
 This script is usefull to test a list of API on a domain. An example is:
 ``` bash
-    python3 main.py -f api_list.json localhost:3000
+    python3 main.py scan -f api_list.json localhost:3000
 ```
 
 As you can see the script take in input 2 essential arguments: 
@@ -26,6 +26,20 @@ So, by default it contains all the endpoints returned a 200 status code with:
  - Method. 
  - Status code.
  - An hash of the response so you can easily compare it.
+
+### Commands 
+The possible commands are: 
+ - scan, test all the api endpoints in the file.
+ - force, combine all the endpoints in the file for create a 2 words endpoints and test it. For example: 
+   - file endpoints: 
+     - test
+     - api 
+
+    - result endpoints:
+      - test
+      - test/api
+      - api
+      - api/test 
 
 ### Options
 Some options can help to use the script: 

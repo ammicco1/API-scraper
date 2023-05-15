@@ -3,7 +3,10 @@
 import requests, sys, getopt, json, hashlib
 
 def __usage():
-    print("""Usage: python3 main.py [options] hostname
+    print("""Usage: python3 main.py <command> <-f apis-file> [options] <hostname>
+Commands:
+    - scan, test all the api endpoints in the file.
+    - force, combine all the endpoints in the file for create a 2 words endpoints. 
 Options: 
     -l (--list) <filename>, specify a file contains a list of hostname.
     -p (--protocol) <protocol>, specify the protocol to use, http or https, default is https.
@@ -28,6 +31,20 @@ def __parse(filename):
     f.close()
 
     return data
+
+def __brute_force(apis):
+    comp_apis = []
+
+    for i in range(len(apis)): 
+        comp_apis.append(apis[i])
+        
+        for j in range(len(apis)):
+            if j == i: 
+                continue
+            else:
+                comp_apis.append(f"{apis[i]}/{apis[j]}")
+
+    return comp_apis
 
 def __scan(proto, hostname, apis, verbose, exclude, printRes, body, follow, header):
     print()
@@ -69,8 +86,8 @@ def __scan(proto, hostname, apis, verbose, exclude, printRes, body, follow, head
                     r = [response.status_code, text]
                 
                 out[url][met] = r
-            elif verbose is True and response.status_code == 404:
-                out[url][met] =response.status_code
+            #elif verbose is True and response.status_code == 404:
+            #    out[url][met] =response.status_code
 
         if not out[url]:
             out.pop(url)
@@ -85,9 +102,15 @@ body = ["", ""]
 verbose = printRes = follow = False
 exclude = 0
 
+if sys.argv[1] == "-h":
+    start = 1
+else:
+    start = 2
+
 try:
-    opts, args = getopt.getopt(sys.argv[1:], "l:p:o:f:m:j:d:H:x:Frvh", ["list=", "protocol=", "output=", "file=", "method=", "json=", "data=", "header=", "exclude=", "follow", "reponse", "verbose", "help"])
-except: 
+    opts, args = getopt.getopt(sys.argv[start:], "l:p:o:f:m:j:d:H:x:Frvh", ["list=", "protocol=", "output=", "file=", "method=", "json=", "data=", "header=", "exclude=", "follow", "reponse", "verbose", "help"])
+except getopt.GetoptError as err:
+    print(err) 
     __usage()
     exit()
 
@@ -136,7 +159,12 @@ for opt, arg in opts:
         __usage()
         exit()
 
+command = sys.argv[1]
+
 apis = __parse(apiFile)
+
+if command == "force":
+    apis = __brute_force(apis)
 
 if hostFile != "":
     for hostname in open(hostFile, "r"):
