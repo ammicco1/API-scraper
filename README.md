@@ -41,6 +41,8 @@ The possible commands are:
       - api
       - api/test 
 
+Obviusly force command takes a lot of time
+
 ### Options
 Some options can help to use the script: 
  - l (--list) <filename>, specify a file contains a list of hostname.
