@@ -2,7 +2,9 @@
 
 import requests, sys, getopt, json, hashlib
 
-def __usage():
+__MAXLEN__ = 60 # if response lenght is higher will be printed its hash 
+
+def __usage(): # function to print an help message
     print("""Usage: python3 main.py <command> <-f apis-file> [options] <hostname>
 Commands:
     - scan, test all the api endpoints in the file.
@@ -15,6 +17,7 @@ Options:
     -m (--method) <method list>, specify a list of method to use (separate method with comma).
     -j (--json) <string>, specify a json payload for post requests. With this options it send only POST.
     -d (--data) <string>, specify urlencoded data payload for post requests. With this options it send only POST.
+    -c (--cookie) <string>, specify a cookie (json format).
     -H (--header) <string>, specify a header in json form to include it in the request.
     -x (--exclude) <status code>, exclude a status code from output.
     -F (--follow), follow redirect.
@@ -23,7 +26,7 @@ Options:
     -h (--help), display this help. 
 """)
 
-def __parse(filename):
+def __parse(filename): # function to parse wordlist file into an array
     f = open(filename, "r")
     
     data = json.load(f)
@@ -32,7 +35,7 @@ def __parse(filename):
 
     return data
 
-def __brute_force(apis):
+def __brute_force(apis): # function to combine every word of the wordlist with another one, in this way you can get a double slash endpoint to test with all the combination
     comp_apis = []
 
     for i in range(len(apis)): 
@@ -46,61 +49,107 @@ def __brute_force(apis):
 
     return comp_apis
 
-def __scan(proto, hostname, apis, verbose, exclude, printRes, body, follow, header):
-    print()
-    out = {}
-    headers = {}
+def __scan(proto, hostname, apis, verbose, exclude, printRes, body, follow, header, cookie): # function to send request to all the endpoints
+    print() # just to leave some space
+    out = {} # to create output 
+    headers = {} # to store req headers
+    cookies ={} # to store req cookies
+    r = {} # to store temp output data
+    warn = [] # to store warnings
 
-    if header != "":
+    if header != "": # if pass some headers as argument update the dict 
         headers.update(header)
 
-    for end in apis:
-        url = f"{proto}://{hostname}/{end}"
+    if cookies != "":
+        cookies.update(cookie)
 
-        out[url] = {}
+    for end in apis: # for all the endpoints
+        url = f"{proto}://{hostname}/{end}" # create the url with protocol (http or https), hostname and endpoint name
 
-        for met in method: 
-            if body[0] == "json" and met == "POST":
-                headers["content-type"] = "application/json"
-                response = requests.request(met, url = url, json = body[1], allow_redirects = follow, headers = headers)
-            elif body[0] == "urlenc" and met == "POST":
-                headers["content-type"] = "application/x-www-form-urlencoded"
-                response = requests.request(met, url = url, data = body[1], allow_redirects = follow, headers = headers)
+        out[url] = {} # create an entry in the results dict named as the url
+
+        for met in method: # for all the method specified  
+            if body[0] == "json" and met == "POST": # if the request is a POST with json payload 
+                headers["content-type"] = "application/json" # set the appropriate header
+                response = requests.request(met, url = url, json = body[1], allow_redirects = follow, headers = headers, cookies = cookies) # send the request
+            elif body[0] == "urlenc" and met == "POST": # if the req is a POST with urlencoded data
+                headers["content-type"] = "application/x-www-form-urlencoded" # set the header 
+                response = requests.request(met, url = url, data = body[1], allow_redirects = follow, headers = headers, cookies = cookie) # send the request
             else:
-                response = requests.request(met, url = url, allow_redirects = follow, headers = headers)
+                response = requests.request(met, url = url, allow_redirects = follow, headers = headers, cookies = cookie) # if there's no payload send the request
 
-            if ((response.status_code > 199 and response.status_code < 300) or (verbose is True and response.status_code != 404)) and (response.status_code != int(exclude)): 
-                if len(response.text) > 40:
-                    text = hashlib.md5(response.text.encode()).hexdigest()
+            # if the response code is a 200's family code or verbose is set and code is different from the one to exclude
+            if ((response.status_code > 199 and response.status_code < 300) or (verbose is True and response.status_code != 404)) and (response.status_code != int(exclude)):
+                if len(response.text) > __MAXLEN__: # if the response text len is higher than the limit
+                    text = hashlib.md5(response.text.encode()).hexdigest() # hash the response
                 else:
-                    text = response.text
+                    text = response.text # else save the plain response
 
                 print(f"[ \033[92m OK \033[0m ] - \033[1mUrl\033[0m: \033[96m{url}\033[0m, \
 \033[1mmethod\033[0m: \033[91m{met}\033[0m, \
 \033[1mstatus\033[0m: \033[93m{response.status_code}\033[0m, \
-\033[1mresponse\033[0m: {text}\n")
+\033[1mresponse\033[0m: {text}\n") # print formatted output for the response 
 
-                if printRes is True:
-                    r = [response.status_code, response.text]
+                r["status"] = response.status_code # insert the status code
+
+                if printRes is True: # insert response text 
+                    r["response"] = response.text
                 else:
-                    r = [response.status_code, text]
+                    r["response"] = text
+
+                r["headers"] = dict(response.headers) # insert response headers
+
+                for h in mhead: # check if must have headers isnt set in the response
+                    if h not in response.headers:
+                        warn.append(f"header {h} not set!") # if isnt set make a warning
+
+                if len(warn) != 0: # if there's some warning add it to the output
+                    r["headers"]["header-warnings"] = warn
+
+                if response.cookies != {}: # insert the cookies
+                    r["cookies"] = dict(response.cookies)
+
+                warn.clear()
+
+                for c in nhcookie:
+                    if c in response.cookies:
+                        warn.append(f"found a {c} cookie!")
+
+                if len(warn) != 0: 
+                    r["cookies"]["cookie-warnings"] = warn
                 
-                out[url][met] = r
-            #elif verbose is True and response.status_code == 404:
-            #    out[url][met] =response.status_code
+                out[url][met] = r # add r to the output
 
         if not out[url]:
             out.pop(url)
             
     return out
 
-method = ["GET", "POST"]
 proto = "https"
 hostFile = apiFile = outFile = header = ""
+
+verbose = printRes = follow = False
+
+exclude = 0
+
+cookies = {}
+
+method = ["GET", "POST"]
 output = []
 body = ["", ""]
-verbose = printRes = follow = False
-exclude = 0
+
+mhead = [
+    "Content-Security-Policy",
+    "X-Frame-Options", 
+    "X-Content-Type-Options",
+    "Referrer-Policy",
+    "Permissions-Policy"
+]
+
+nhcookie = [
+    "id", 
+    "sessionId"
+]
 
 if sys.argv[1] == "-h":
     start = 1
@@ -108,7 +157,7 @@ else:
     start = 2
 
 try:
-    opts, args = getopt.getopt(sys.argv[start:], "l:p:o:f:m:j:d:H:x:Frvh", ["list=", "protocol=", "output=", "file=", "method=", "json=", "data=", "header=", "exclude=", "follow", "reponse", "verbose", "help"])
+    opts, args = getopt.getopt(sys.argv[start:], "l:p:o:f:m:j:d:H:c:x:Frvh", ["list=", "protocol=", "output=", "file=", "method=", "json=", "data=", "header=", "cookies=", "exclude=", "follow", "reponse", "verbose", "help"])
 except getopt.GetoptError as err:
     print(err) 
     __usage()
@@ -120,13 +169,13 @@ if len(args) > 0:
 for opt, arg in opts:
     if opt in ["-l", "--list"]:
         hostFile = arg
-    elif opt in ["-p", "--protocol"]:
+    if opt in ["-p", "--protocol"]:
         proto = arg
-    elif opt in ["-o", "--output"]:
+    if opt in ["-o", "--output"]:
         outFile = arg
-    elif opt in ["-f", "--file"]:
+    if opt in ["-f", "--file"]:
         apiFile = arg
-    elif opt in ["-m", "--method"]:
+    if opt in ["-m", "--method"]:
         mets = arg
         method.clear()
 
@@ -137,25 +186,27 @@ for opt, arg in opts:
                 method.append(m)
         else:
             method.append(mets)
-    elif opt in ["-j", "--json"]:
+    if opt in ["-j", "--json"]:
         method.pop(0)
         body[0] = "json"
         body[1] = json.loads(arg)  
-    elif opt in ["-d", "--data"]:
+    if opt in ["-d", "--data"]:
         method.pop(0)
         body[0] = "urlenc"
         body[1] = arg 
-    elif opt in ["-H", "--header"]:
+    if opt in ["-H", "--header"]:
         header = json.loads(arg)
-    elif opt in ["-F", "--follow"]:
+    if opt in ["-c", "--cookie"]:
+        cookies = json.loads(arg)
+    if opt in ["-F", "--follow"]:
         follow = True   
-    elif opt in ["-x", "--exclude"]:  
+    if opt in ["-x", "--exclude"]:  
         exclude = arg
-    elif opt in ["-r", "--reponse"]:
+    if opt in ["-r", "--reponse"]:
         printRes = True
-    elif opt in ["-v", "--verbose"]:
+    if opt in ["-v", "--verbose"]:
         verbose = True
-    elif opt in ["-h", "--help"]:
+    if opt in ["-h", "--help"]:
         __usage()
         exit()
 
@@ -168,9 +219,9 @@ if command == "force":
 
 if hostFile != "":
     for hostname in open(hostFile, "r"):
-        output.append(__scan(proto, hostname.replace("\n", ""), apis, verbose, exclude, printRes, body, follow, header))
+        output.append(__scan(proto, hostname.replace("\n", ""), apis, verbose, exclude, printRes, body, follow, header, cookies))
 else:
-    output.append(__scan(proto, hostname, apis, verbose, exclude, printRes, body, follow, header))
+    output.append(__scan(proto, hostname, apis, verbose, exclude, printRes, body, follow, header, cookies))
 
 if outFile != "":
     of = open(outFile, "w")
