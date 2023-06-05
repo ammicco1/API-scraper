@@ -53,6 +53,7 @@ Some options can help to use the script:
  - j (--json) <string>, specify a json payload for post requests. With this options it send only POST.
  - d (--data) <string>, specify urlencoded data payload for post requests. With this options it send only POST.
  - H (--header) <string>, specify a header in json form to include it in the request.
+ - c (--cookie) <string>, specify a cokie in json form.
  - x (--exclude) <status code>, exclude a status code from output.
  - F (--follow), follow redirect.
  - r (--response), print response text in output file instead of hash. In stdout print always the hash.
