@@ -66,7 +66,6 @@ def __scan(proto, method, hostname, apis, verbose, exclude, printRes, body, foll
     out = {} # to create output 
     headers = {} # to store req headers
     cookies ={} # to store req cookies
-    r = {} # to store temp output data
 
     if header != "": # if pass some headers or cookie as argument update the dict 
         headers.update(header)
@@ -81,11 +80,12 @@ def __scan(proto, method, hostname, apis, verbose, exclude, printRes, body, foll
 
         out[url] = {} # create an entry in the results dict named as the url
 
-        for met in method: # for all the method specified  
+        for met in method: # for all the method specified 
+            r = {} # to store temp output data 
             hwarn = [] # to store warnings
             cwarn = []
             
-            if met == "POST":
+            if met == "POST" and (body[0] == "json" or body[0] == "urlenc"):
                 if body[0] == "json":
                     headers["content-type"] = "application/json" # set the appropriate header
                     response = requests.request(met, url = url, json = body[1], allow_redirects = follow, headers = headers, cookies = cookies) # send the request
