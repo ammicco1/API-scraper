@@ -67,6 +67,8 @@ def __scan(proto, method, hostname, apis, verbose, exclude, printRes, body, foll
     headers = {} # to store req headers
     cookies ={} # to store req cookies
 
+    out["used command"] = cmd
+
     if header != "": # if pass some headers or cookie as argument update the dict 
         headers.update(header)
 
@@ -136,6 +138,9 @@ def __scan(proto, method, hostname, apis, verbose, exclude, printRes, body, foll
 def __main(): # main function
     proto = "https" # default protocol is https
     hostFile = apiFile = outFile = header = "" # some stuff
+    global cmd
+
+    cmd = ""
     
     verbose = printRes = follow = False
 
@@ -149,7 +154,10 @@ def __main(): # main function
 
     if ("-h" in sys.argv or "--help" in sys.argv) or ("-f" not in sys.argv and "--file" not in sys.argv) or (sys.argv[1] != "scan" and sys.argv[1] != "force"): # if -h is in the args or
         __usage()                                                                                                                                               # if -f not in arsg or
-        exit()                                                                                                                                                  # if argv[1] isnt the command, display help
+        exit()   
+        
+    for cmd_parts in sys.argv:
+        cmd += f"{cmd_parts} "                                                                                                                                               # if argv[1] isnt the command, display help
 
     # parse arguments
     try:
