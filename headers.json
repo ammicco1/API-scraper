@@ -1,0 +1,7 @@
+[
+    "Content-Security-Policy",
+    "X-Frame-Options", 
+    "X-Content-Type-Options",
+    "Referrer-Policy",
+    "Permissions-Policy"
+]

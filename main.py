@@ -4,19 +4,6 @@ import requests, sys, getopt, json, hashlib
 
 __MAXLEN__ = 120 # if response lenght is higher will be printed its hash 
 
-__MHEAD__ = [ # must have security headers
-    "Content-Security-Policy",
-    "X-Frame-Options", 
-    "X-Content-Type-Options",
-    "Referrer-Policy",
-    "Permissions-Policy"
-]
-
-__NHCOOKIE__ = [ # interesting cookie names
-    "id", 
-    "sessionId"
-]
-
 def __usage(): # function to print an help message
     print("""Usage: python3 main.py <command> <-f apis-file> [options] <hostname>
 Commands:
@@ -219,6 +206,11 @@ def __main(): # main function
     command = sys.argv[1]
 
     apis = __parse(apiFile) # get apis list
+    global __MHEAD__  # get headers list
+    global __NHCOOKIE__ # get cookies list
+
+    __MHEAD__ = __parse("headers.json")
+    __NHCOOKIE__ = __parse("cookies.json")
 
     if command == "force": # if the command is force, create the endpoints
         apis = __brute_force(apis)
