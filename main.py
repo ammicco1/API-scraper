@@ -108,9 +108,12 @@ def __scan(proto, method, hostname, apis, verbose, exclude, printRes, body, foll
                 if response.cookies != {}: # insert the cookies
                     r["cookies"] = dict(response.cookies)
 
-                for c in __NHCOOKIE__: # check if there's some interesting cookies in the response
-                    if c in response.cookies:
+                for c in response.cookies: # check if there's some interesting cookies in the response
+                    if c in __NHCOOKIE__:
                         cwarn.append(f"found a {c} cookie!")
+                    
+                    if c.secure == False:
+                        cwarn.append(f"cookie {c} not have secure attribute")
 
                 if len(cwarn) != 0: 
                     r["cookies"]["cookie-warnings"] = cwarn
