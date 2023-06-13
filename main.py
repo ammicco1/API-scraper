@@ -56,7 +56,7 @@ def __scan(proto, method, hostname, apis, verbose, exclude, printRes, body, foll
 
     out["used command"] = cmd
 
-    if proto == "http" and follow == False:
+    if proto == "http":
         out["protocol warnings"] = "Endpoint accept http not secure connections"
 
     if header != "": # if pass some headers or cookie as argument update the dict 
