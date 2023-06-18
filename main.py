@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 
-import requests, sys, getopt, json, hashlib
+import requests, sys, getopt, json, hashlib, re
 
 __MAXLEN__ = 120 # if response lenght is higher will be printed its hash 
 
@@ -76,6 +76,7 @@ def __scan(proto, method, hostname, apis, verbose, exclude, printRes, body, foll
             r = {} # to store temp output data 
             hwarn = [] # to store warnings
             cwarn = []
+            rtwarn = []
             
             if met == "POST" and (body[0] == "json" or body[0] == "urlenc"):
                 if body[0] == "json":
@@ -87,12 +88,33 @@ def __scan(proto, method, hostname, apis, verbose, exclude, printRes, body, foll
             else:
                 response = requests.request(met, url = url, allow_redirects = follow, headers = headers, cookies = cookie) # if there's no payload send the request
 
+            textPattern = re.compile("<input.*type[ ]*=[ ]*[\",']text[\",'].*>")
+            passwordPattern = re.compile("<input.*type[ ]*=[ ]*[\",']password[\",'].*>")
+            formPattern = re.compile("<form.*action[ ]*=[ ]*[\",'].*[\",'].*>")
+            actionPattern = re.compile("action[ ]*=[ ]*[\",'][^',\"]*[\",']")
+
             # if the response code is a 200's family code or verbose is set and code is different from the one to exclude
             if ((response.status_code > 199 and response.status_code < 300) or (verbose is True and response.status_code != 404)) and (response.status_code != int(exclude)):
                 if len(response.text) > __MAXLEN__ and printRes == False: # if the response text len is higher than the limit
                     text = hashlib.md5(response.text.encode()).hexdigest() # hash the response
                 else:
                     text = response.text # else save the plain response
+
+                textMatch = textPattern.findall(response.text)
+                passwordMatch = passwordPattern.findall(response.text)
+                formMatch = formPattern.findall(response.text)
+
+                if len(textMatch) > 0: 
+                    rtwarn.append("Found text input in the response!")
+
+                if len(passwordMatch) > 0:
+                    rtwarn.append("Found password input in the response!")
+
+                if len(formMatch) > 0:
+                    rtwarn.append({"Found form with action in the response!": re.findall(actionPattern, response.text)})
+
+                if len(rtwarn) != 0:
+                    r["input and form"] = rtwarn
 
                 # print formatted output for the response 
                 print(f"[ \033[92m OK \033[0m ] - \033[1mUrl\033[0m: \033[96m{url}\033[0m, \033[1mmethod\033[0m: \033[91m{met}\033[0m, \033[1mstatus\033[0m: \033[93m{response.status_code}\033[0m, \033[1mresponse\033[0m: {text}\n")
